@@ -1,0 +1,89 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#07101d">
+<title>Treble Roulette Full</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#07101d;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:900px;margin:auto;padding:15px}.panel{background:#101c2d;border:1px solid #263850;border-radius:18px;padding:16px;margin:12px 0}
+h1{margin:0 0 4px;font-size:30px}.muted,.small{color:#9baac0}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.card{background:#0a1626;border-radius:13px;padding:12px}.label{font-size:11px;color:#9baac0;text-transform:uppercase}.value{font-size:22px;font-weight:800;margin-top:4px}
+button{width:100%;border:0;border-radius:12px;padding:13px;margin:5px 0;background:#3d8bfd;color:#fff;font-weight:800;font-size:15px}button.alt{background:#263852}button.danger{background:#713640}
+.hidden{display:none}.notice{background:#0a1728;border-radius:11px;padding:10px;margin-top:8px;color:#aab7c8}.good{color:#55df8a}.bad{color:#ff707a}.gold{color:#ffd75e}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:7px 4px;border-bottom:1px solid #223249;text-align:left;white-space:nowrap}th{color:#9baac0;font-size:11px}
+.scroll{overflow:auto}.log{max-height:450px;overflow:auto}.match{padding:8px 2px;border-bottom:1px solid #213149}
+textarea{width:100%;min-height:100px;background:#091526;color:#fff;border:1px solid #30435f;border-radius:11px;padding:11px;font:inherit}
+@media(max-width:560px){.grid3{grid-template-columns:1fr 1fr}}
+</style></head><body><main>
+<div class="panel"><h1>🏆 Treble Roulette</h1><div class="muted">Full offline career simulator — no external connection required.</div></div>
+
+<div class="panel"><h2>🎰 Roulette</h2><div class="grid">
+<div class="card"><div class="label">Team</div><div id="team" class="value">—</div></div>
+<div class="card"><div class="label">Era</div><div id="era" class="value">—</div></div></div>
+<button id="spin">🎰 SPIN TEAM + ERA</button><button id="simulate">⚽ SIMULATE NEXT SEASON</button><button id="new" class="alt">🔄 NEW CAREER</button>
+<div id="status" class="notice">Spin to begin.</div></div>
+
+<section id="summary" class="panel hidden"><h2>📊 Season Summary</h2><div class="grid3">
+<div class="card"><div class="label">Season</div><div id="season" class="value">0</div></div>
+<div class="card"><div class="label">Record</div><div id="record" class="value">0-0-0</div></div>
+<div class="card"><div class="label">Goals</div><div id="goals" class="value">0-0</div></div>
+<div class="card"><div class="label">Points</div><div id="points" class="value">0</div></div>
+<div class="card"><div class="label">Cup</div><div id="cup" class="value">—</div></div>
+<div class="card"><div class="label">UCL</div><div id="ucl" class="value">—</div></div>
+</div><div id="treble" class="notice"></div></section>
+
+<section id="trophies" class="panel hidden"><h2>🏆 Trophy Cabinet</h2><div id="trophyList"></div></section>
+<section id="players" class="panel hidden"><h2>⭐ Player Stats</h2><div class="scroll"><table id="playerTable"></table></div></section>
+<section id="league" class="panel hidden"><h2>📋 League Table</h2><div class="scroll"><table id="leagueTable"></table></div></section>
+<section id="logs" class="panel hidden"><h2>📜 Match Log</h2><div id="matchLog" class="log"></div></section>
+
+<div class="panel"><h2>💾 Save / Load</h2>
+<button id="save">💾 SAVE CAREER</button><button id="load" class="alt">📂 LOAD CAREER</button>
+<button id="export" class="alt">📤 EXPORT SAVE</button><textarea id="saveData" placeholder="Exported save data appears here. Copy it somewhere safe."></textarea>
+<button id="import" class="alt">📥 IMPORT SAVE</button><button id="clear" class="danger">🗑️ DELETE LOCAL SAVE</button>
+</div></main>
+
+<script>
+const TEAMS=["Real Madrid","Barcelona","Manchester United","Liverpool","Arsenal","Manchester City","Chelsea","Tottenham","Bayern Munich","Borussia Dortmund","AC Milan","Inter Milan","Juventus","Napoli","Roma","Atlético Madrid","Valencia","PSG","Marseille","Ajax","PSV","Feyenoord","Benfica","Porto","Celtic","Rangers","Galatasaray","Fenerbahçe","Dynamo Kyiv","Red Star Belgrade","Steaua București","Leeds United","Nottingham Forest","Aston Villa","Everton","Newcastle United","West Ham","River Plate","Boca Juniors","Santos","Flamengo","Palmeiras","Corinthians","Grêmio","Cruzeiro","Independiente","Racing Club","Peñarol","Nacional","São Paulo","Vasco da Gama","Club América","Al Ahly","Cruz Azul","Hamburg","Monaco","Lyon","Villarreal"];
+const ERAS=["1950s","1960s","1970s","1980s","1990s","2000s","2010s","2020s"];
+const PLAYERS=["Rossi","Silva","Martín","Kane","Nordin","Costa","Bellingham","Mendes","Santos","Diaz","Leroy","Adem"];
+const OPP=["United","City","Liverpool","Arsenal","Chelsea","Spurs","Milan","Inter","Bayern","Dortmund","Ajax","Juventus","Napoli","Roma","PSG","Porto","Benfica","Atlético","Valencia","Monaco"];
+const $=x=>document.getElementById(x),pick=a=>a[Math.floor(Math.random()*a.length)],num=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+function fresh(){return{team:"",era:"",season:0,w:0,d:0,l:0,gf:0,ga:0,cup:false,ucl:false,league:false,treble:false,players:[],table:[],log:[],trophies:{league:0,cup:0,ucl:0,treble:0}}}
+let S=fresh();
+
+function spin(){S.team=pick(TEAMS);S.era=pick(ERAS);$("team").textContent=S.team;$("era").textContent=S.era;msg("Challenge selected — simulate the season!")}
+function msg(x){$("status").textContent=x}
+function addGoals(total,ps){for(let i=0;i<total;i++){let p=pick(ps);p.g++;if(Math.random()<.65)p.a+=num(0,2)}}
+
+function simulate(){
+ if(!S.team)spin();S.season++;S.w=S.d=S.l=S.gf=S.ga=0;S.log=[];S.players=PLAYERS.map(n=>({name:n,g:0,a:0}));
+ for(let i=1;i<=38;i++){let x=Math.random(),a,b,r;
+  if(x<.56){r="W";a=num(1,4);b=num(0,2);S.w++}
+  else if(x<.79){r="D";a=b=num(0,2);S.d++}
+  else{r="L";a=num(0,2);b=num(1,4);S.l++}
+  S.gf+=a;S.ga+=b;addGoals(a,S.players);S.log.push({c:"League",r,n:i,a,b,o:pick(OPP)});
+ }
+ let cupRounds=["Round 3","Round 4","Quarter-final","Semi-final","Final"],uclRounds=["League phase","Play-off","Round of 16","Quarter-final","Semi-final","Final"];
+ S.cup=knockout("Domestic Cup",cupRounds,.60);S.ucl=knockout("Champions League",uclRounds,.48);
+ S.log=S.log.concat(S.cup.games,S.ucl.games);S.trophies= S.trophies||{league:0,cup:0,ucl:0,treble:0};
+ buildTable();S.league=S.table[0].team===S.team;if(S.league)S.trophies.league++;if(S.cup.won)S.trophies.cup++;if(S.ucl.won)S.trophies.ucl++;
+ S.treble=S.league&&S.cup.won&&S.ucl.won;if(S.treble)S.trophies.treble++;render();save();msg(S.treble?"👑 TREBLE COMPLETE! Career saved.":"Season "+S.season+" completed.");
+}
+function knockout(c,rounds,chance){let games=[],won=true;for(const r of rounds){let ok=Math.random()<Math.min(.84,chance+(S.w-19)*.01);let a=ok?num(1,4):num(0,2),b=ok?num(0,2):num(1,4);games.push({c,r:r,r:ok?"W":"L",n:r,a,b,o:c==="Domestic Cup"?"Cup opponent":"European opponent"});if(!ok){won=false;break}}return{games,won}}
+function buildTable(){let arr=[{team:S.team,w:S.w,d:S.d,l:S.l,pts:S.w*3+S.d,gf:S.gf,ga:S.ga}];while(arr.length<20){let w=num(8,25),d=num(4,12),l=38-w-d;if(l<0){w=20;d=8;l=10}arr.push({team:pick(OPP)+" "+arr.length,w,d,l,pts:w*3+d,gf:num(30,75),ga:num(25,65)})}arr.sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga));S.table=arr}
+function render(){
+ $("team").textContent=S.team;$("era").textContent=S.era;$("summary").classList.remove("hidden");
+ $("season").textContent=S.season;$("record").textContent=`${S.w}-${S.d}-${S.l}`;$("goals").textContent=`${S.gf}-${S.ga}`;$("points").textContent=S.w*3+S.d;$("cup").textContent=S.cup.won?"🏆":"❌";$("ucl").textContent=S.ucl.won?"🏆":"❌";
+ $("treble").innerHTML=S.treble?"<b class=gold>👑 TREBLE COMPLETE!</b> League + Domestic Cup + Champions League.":S.league?"🏆 League title won.":"The treble attempt continues next season.";
+ $("trophies").classList.remove("hidden");$("trophyList").innerHTML=`🏆 League × ${S.trophies.league} &nbsp; 🏆 Cup × ${S.trophies.cup} &nbsp; 🏆 UCL × ${S.trophies.ucl} &nbsp; <span class=gold>👑 Treble × ${S.trophies.treble}</span>`;
+ $("players").classList.remove("hidden");$("playerTable").innerHTML="<tr><th>Player</th><th>Goals</th><th>Assists</th></tr>"+[...S.players].sort((a,b)=>b.g-a.g).map(p=>`<tr><td>${p.name}</td><td>${p.g}</td><td>${p.a}</td></tr>`).join("");
+ $("league").classList.remove("hidden");$("leagueTable").innerHTML="<tr><th>#</th><th>Team</th><th>Pts</th><th>W</th><th>D</th><th>L</th><th>GD</th></tr>"+S.table.map((t,i)=>`<tr><td>${i+1}</td><td>${t.team}</td><td>${t.pts}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${t.gf-t.ga}</td></tr>`).join("");
+ $("logs").classList.remove("hidden");$("matchLog").innerHTML=S.log.map(m=>`<div class=match><b>${m.c}</b> — ${m.n} · <span class=${m.r==="W"?"good":m.r==="L"?"bad":""}>${S.team} ${m.a}-${m.b} ${m.o}</span></div>`).join("");
+}
+function save(){try{localStorage.setItem("trebleRouletteSave",JSON.stringify(S))}catch(e){}}
+function load(){let x=localStorage.getItem("trebleRouletteSave");if(!x){msg("No local save found.");return}try{S=JSON.parse(x);render();msg("Career loaded.")}catch(e){msg("Save is invalid.")}}
+function exportSave(){$("saveData").value=btoa(unescape(encodeURIComponent(JSON.stringify(S))));msg("Save data exported. Copy it somewhere safe.")}
+function importSave(){try{S=JSON.parse(decodeURIComponent(escape(atob($("saveData").value.trim()))));render();save();msg("Save imported.")}catch(e){msg("Invalid save data.")}}
+function newCareer(){S=fresh();$("team").textContent="—";$("era").textContent="—";["summary","trophies","players","league","logs"].forEach(x=>$(x).classList.add("hidden"));msg("New career started.")}
+$("spin").onclick=spin;$("simulate").onclick=simulate;$("new").onclick=newCareer;$("save").onclick=save;$("load").onclick=load;$("export").onclick=exportSave;$("import").onclick=importSave;$("clear").onclick=()=>{localStorage.removeItem("trebleRouletteSave");msg("Local save deleted.")};
+</script></body></html>
